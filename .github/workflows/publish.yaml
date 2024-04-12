@@ -1,7 +1,6 @@
 name: Build and Publish Python API Client
 
 on:
-  pull_request: #testing
   workflow_dispatch:
     branches: [main]
 
