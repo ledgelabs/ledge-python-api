@@ -1,0 +1,61 @@
+name: Build and Publish Python API Client
+
+on:
+  pull_request: #testing
+  workflow_dispatch:
+    branches: [main]
+
+  release:
+    types: [published]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: Ledge-Python-SDK
+  SOURCE_PATH: ./api
+  PYPI_PROJECT_NAME: LedgePythonSdk
+
+jobs:
+  build:
+    name: Build Python distribution
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.x"
+
+      - name: Install pypa/build & Build a binary wheel and a source tarball
+        run: |
+          cd ${{ env.SOURCE_PATH }}
+          python3 -m pip install build --user
+          python3 -m build
+
+      - name: Store the distribution packages
+        uses: actions/upload-artifact@v3
+        with:
+          name: python-package-distributions
+          path: ${{ env.SOURCE_PATH }}/dist
+
+  publish-to-pypi:
+    name: Publish Python 🐍 distribution 📦 to PyPI
+    needs:
+      - build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/${{ env.PYPI_PROJECT_NAME }}/
+
+    steps:
+      - name: Download all the dists
+        uses: actions/download-artifact@v3
+        with:
+          name: python-package-distributions
+          path: ${{ env.SOURCE_PATH }}/dist
+
+      - name: Publish package
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          packages-dir: ${{ env.SOURCE_PATH }}/dist
